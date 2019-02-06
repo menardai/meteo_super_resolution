@@ -34,4 +34,65 @@ Target image (output):
 
 ![generated image](https://github.com/menardai/meteo_super_resolution/blob/master/challenge_doc/input-generated-target-air.png)  
 
+## Requirements
+ - Pytorch 1.0
+ - [Fastai library 1.0](https://github.com/fastai/fastai)
+
+**Command to install pytorch and fastai using Conda**  
+```conda install -c pytorch -c fastai fastai```
+
+## Preprocessing
+Convert the training and test dataset in RGB png images to be feed to the unet network.
+
+First copy all the dataset files in a folder named *data* at project root and, then run the following command:  
+```python preprocessing.py```  
+
+Dataset from ./data/ folder will be converted and saved in png images in ./images/ folder with the following structure:  
+<pre>
+            ├── data  
+            │   ├── date_test_set.npy  
+            │   ├── date_training.npy  
+            │   ├── date.txt  
+            │   │  
+            │   ├── input_test_set.npy  
+            │   ├── label_test_set.npy  
+            │   │   
+            │   ├── input_training_0000_0099.npy  
+            │   ├── input_training_0100_0199.npy  
+            │   │     ...  
+            │   ├── input_training_5200_5299.npy  
+            │   ├── input_training_5300_5342.npy  
+            │   │   
+            │   ├── label_training_0000_0099.npy  
+            │   ├── label_training_0100_0199.npy  
+            │   │     ...  
+            │   ├── label_training_5200_5299.npy  
+            │   ├── label_training_5300_5342.npy  
+            │  
+            │  
+            ├── images  
+            │   ├── train  
+            │   │   ├── hires  
+            │   │   │   ├── 2016100100.png  
+            │   │   │   └── 2016100103.png  
+            │   │   └── lowres  
+            │   │   │   ├── 2016100100.png  
+            │   │   │   └── 2016100103.png  
+            │   └── valid  
+            │       ├── hires  
+            │       │   ├── 2016100100.png  
+            │       │   └── 2016100103.png  
+            │       └── lowres  
+            │           ├── 2016100100.png  
+            │           └── 2016100103.png  
+</pre>
+
+## Training the Model
+```python model_resnet34.py```  
+
+Note that the dataset must have been preprocessed before training the model.
+
+## Generating Increased-Resolution Temperature Images
+
+
 
