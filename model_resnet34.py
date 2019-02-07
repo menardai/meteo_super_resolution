@@ -83,21 +83,21 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
 
 def train():
     # create the dataset loader
-    data_loader = Weather3to3('./images/', batch_size=34, image_size=256).data_loader
+    data_loader = Weather3to3('./images/', batch_size=32, image_size=256).data_loader
 
     # create the unet architecture with a Resnet-34 as encoder
     learn_gen = unet_resnet34(data_loader)
 
     # by default the Resnet encoder weights are frozen to Imagenet pre-trained weights,
-    # keep them freeze and train only for 2 epochs to train the rest of the unet
-    learn_gen.fit_one_cycle(2)
+    # keep them freeze and train only for 5 epochs to train the rest of the unet
+    learn_gen.fit_one_cycle(5)
 
     # now, unfreeze and train all layers
     learn_gen.unfreeze()
 
-    # fit the model on 300 epochs.
+    # fit the model on 200 epochs.
     # learning rate to cycle between 1e-6 and 1e-3
-    learn_gen.fit_one_cycle(300, slice(1e-6,1e-3))
+    learn_gen.fit_one_cycle(200, slice(1e-6,1e-3))
 
     learn_gen.save('unet_resnet34')
 
