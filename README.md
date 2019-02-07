@@ -32,7 +32,9 @@ Target image (output):
 
 ![generated image](https://github.com/menardai/meteo_super_resolution/blob/master/challenge_doc/input-rgb.png)  
 
-![generated image](https://github.com/menardai/meteo_super_resolution/blob/master/challenge_doc/input-generated-target-air.png)  
+Below, the same sample (date and time) but only the air temperature for the input, its target and the generate temperature produced by the model.  
+
+![generated image](https://github.com/menardai/meteo_super_resolution/blob/master/challenge_doc/input-generated-target.png)  
 
 ## Requirements
  - Pytorch 1.0
@@ -88,7 +90,7 @@ Dataset from ./data/ folder will be converted and saved in png images in ./image
 </pre>
 
 ## Training the Model
-```python model_resnet34.py```  
+```python model_resnet34.py --train```  
 
 Note that the dataset must have been preprocessed before training the model.
 
