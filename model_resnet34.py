@@ -46,6 +46,18 @@ def get_temperature_vector(channel_vector, min_value, max_value):
 
 
 def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, output_array_filename=None):
+    """
+    Generate an increased-resolution image for each lowres image in the given data_loader.
+    Each of those generated images will be saved in png format in the specified png_output_folder.
+    Generated images are also converted in air temperature only data saved in the specified output_array_filename.
+
+    Args:
+        learn_gen (unet_learner object): the trained learner to use for making the prediction
+        data_loader (dataset object): the data loader of the test set to load the input image from
+        date_indexes (numpy array): the date of the test set in chronological order
+        png_output_folder (string): folder path where the generated png files will be saved
+        output_array_filename (string): filename of the file where the generated air temperature data will be saved
+    """
     filenames = data_loader.dataset.items
     i=0
 
@@ -53,6 +65,7 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
     path_gen = Path(png_output_folder)
     path_gen.mkdir(exist_ok=True)
 
+    # create an empty maps to collect temperature for each sample
     if output_array_filename is not None:
         temperature_maps = np.zeros(shape=(len(filenames), 1, 256, 256))
 
@@ -64,6 +77,7 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
             output_image.save(path_gen/filenames[i].name)
 
             if output_array_filename is not None:
+                # find the index of the filename in the dates array
                 index = np.where(date_indexes == str.encode(Path(filenames[i]).name[:-4]))
 
                 # transpose from fastai images shape of (c, h, w) to (h, w, c)
@@ -74,7 +88,7 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
             i += 1
 
     if output_array_filename is not None:
-        # save to a .npy file
+        # save air temperatures to a .npy file in the same format as the input and target from the dataset
         np.save(output_array_filename, temperature_maps)
         return temperature_maps
 
@@ -101,16 +115,14 @@ def train():
 
     learn_gen.save('unet_resnet34')
 
-    date_indexes = np.load('data/date_test_set.npy')
-    save_predictions(learn_gen,
-                     data_loader.valid_dl,
-                     date_indexes,
-                     'images/valid/image_gen_34',
-                     output_array_filename='images/image_gen_34_test.npy')
+    # save a plot of the train and validation losses
+    learn_gen.recorder.plot_losses()
+    plt.savefig('./plot_losses_unet_resnet34.png')
 
 
 def predict():
     data_loader = Weather3to3('./images/', batch_size=8, image_size=256).data_loader
+    data_loader.ignore_empty=True
 
     # create the unet architecture with a Resnet-34 as encoder
     learn_gen = unet_resnet34(data_loader, weights_filename='unet_resnet34')
@@ -119,8 +131,8 @@ def predict():
     save_predictions(learn_gen,
                      data_loader.valid_dl,
                      date_indexes,
-                     'images/valid/image_gen_34p',
-                     output_array_filename='images/image_gen_34p_test.npy')
+                     'images/valid/image_gen',
+                     output_array_filename='images/image_gen_test.npy')
 
 
 if __name__ == "__main__":
@@ -136,9 +148,17 @@ if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) > 1 else None
 
     if arg == '--predict':
+        print('PREDICTION')
+        print('  model:   ./images/models/unet_resnet34.pth')
+        print('  dataset: ./images/valid\n')
+
         predict()
 
+        print('  output:  ./images/valid/image_gen/   (generated increased-resolution images)')
+        print('  output:  ./images/image_gen_test.npy (generated air temperature data)')
+
     elif arg == '--train':
+        print('TRAINING THE MODEL')
         train()
 
     else:
