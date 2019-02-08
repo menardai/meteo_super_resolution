@@ -37,16 +37,17 @@ Below, the same sample (date and time) but only the air temperature for the inpu
 ![generated image](https://github.com/menardai/meteo_super_resolution/blob/master/challenge_doc/input-generated-target.png)  
 
 ## Requirements
+ - 64-bit Python 3.6 installation. We recommend Anaconda3.
  - Pytorch 1.0
  - [Fastai library 1.0](https://github.com/fastai/fastai)
 
-**Command to install pytorch and fastai using Conda**  
-```conda install -c pytorch -c fastai fastai```
+Run this command to install pytorch and fastai using Conda  
+```conda install -c pytorch -c fastai fastai```  
 
-## Preprocessing
+## Preparing Dataset for Training
 Convert the training and test dataset in RGB png images to be feed to the unet network.
 
-First copy all the dataset files in a folder named *data* at project root and, then run the following command:  
+First copy all the dataset files in a folder named *data* at project root and, then run the following script:  
 ```python preprocessing.py```  
 
 Dataset from ./data/ folder will be converted and saved in png images in ./images/ folder with the following structure:  
@@ -89,10 +90,13 @@ Dataset from ./data/ folder will be converted and saved in png images in ./image
             │           └── 2016100103.png  
 </pre>
 
-## Training the Model
+## Training the Network
 ```python model_resnet34.py --train```  
 
-Note that the dataset must have been preprocessed before training the model.
+Note that the dataset must have been preprocessed before training the model (Please see the "Preparing Dataset for Training" section above).  
+
+Training time for 200 epochs on a NVidia GTX 1070Ti 8Gb is about 10 hours.  
+
 
 ## Generating Increased-Resolution Temperature Images
 
