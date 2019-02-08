@@ -93,12 +93,18 @@ Dataset from ./data/ folder will be converted and saved in png images in ./image
 ## Training the Network
 ```python model_resnet34.py --train```  
 
-Note that the dataset must have been preprocessed before training the model (Please see the "Preparing Dataset for Training" section above).  
+Note that the dataset must have been preprocessed before training the model.  
+(Please see the "Preparing Dataset for Training" section above)  
 
 Training time for 200 epochs on a NVidia GTX 1070Ti 8Gb is about 10 hours.  
 
 
 ## Generating Increased-Resolution Temperature Images
+```python model_resnet34.py --predict```  
+
+The model to generate the images will be loaded from "./images/models/unet_resnet34.pth".  
+The generated images will be saved in "./images/image_gen_test.npy".  
+
 
 
 
