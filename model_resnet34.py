@@ -124,6 +124,10 @@ def predict():
     data_loader = Weather3to3('./images/', batch_size=8, image_size=256).data_loader
     data_loader.ignore_empty=True
 
+    if not os.path.exists('./images/models/unet_resnet34.pth'):
+        print('  Error - model weights file do not exists: ./images/models/unet_resnet34.pth')
+        return False
+
     # create the unet architecture with a Resnet-34 as encoder
     learn_gen = unet_resnet34(data_loader, weights_filename='unet_resnet34')
 
@@ -133,6 +137,7 @@ def predict():
                      date_indexes,
                      'images/valid/image_gen',
                      output_array_filename='images/image_gen_test.npy')
+    return True
 
 
 if __name__ == "__main__":
@@ -152,10 +157,10 @@ if __name__ == "__main__":
         print('  model:   ./images/models/unet_resnet34.pth')
         print('  dataset: ./images/valid\n')
 
-        predict()
-
-        print('  output:  ./images/valid/image_gen/   (generated increased-resolution images)')
-        print('  output:  ./images/image_gen_test.npy (generated air temperature data)')
+        success = predict()
+        if success:
+            print('  output:  ./images/valid/image_gen/   (generated increased-resolution images)')
+            print('  output:  ./images/image_gen_test.npy (generated air temperature data)')
 
     elif arg == '--train':
         print('TRAINING THE MODEL')
