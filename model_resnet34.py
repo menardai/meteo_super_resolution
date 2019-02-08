@@ -96,8 +96,14 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
 
 
 def train():
+    """
+        Train the model from the dataset png images in "./images/" folder.
+
+        The trained model weights will be save in "./images/models/unet_resnet34.pth"
+        The training losses plot will be save in "./losses_plot.png"
+    """
     # create the dataset loader
-    data_loader = Weather3to3('./images/', batch_size=32, image_size=256).data_loader
+    data_loader = Weather3to3('./images/', batch_size=12, image_size=256).data_loader
 
     # create the unet architecture with a Resnet-34 as encoder
     learn_gen = unet_resnet34(data_loader)
@@ -117,10 +123,19 @@ def train():
 
     # save a plot of the train and validation losses
     learn_gen.recorder.plot_losses()
-    plt.savefig('./plot_losses_unet_resnet34.png')
+    plt.savefig('./losses_plot.png')
 
 
 def predict():
+    """
+        Generate the increased-resolution temperature images.
+
+        The model to generate the images will be loaded from "./images/models/unet_resnet34.pth"
+        The generated images will be saved in "./images/image_gen_test.npy"
+
+        Returns:
+             True for success, False otherwise
+    """
     data_loader = Weather3to3('./images/', batch_size=8, image_size=256).data_loader
     data_loader.ignore_empty=True
 
@@ -146,6 +161,7 @@ if __name__ == "__main__":
       --predict
       --train
     """
+    # force the fastai library progress bar to print to the console
     master_bar, progress_bar = force_console_behavior()
     fastai.basic_train.master_bar, fastai.basic_train.progress_bar = master_bar, progress_bar
 
