@@ -4,7 +4,43 @@ from fastai.vision import *
 from fastai.callbacks import *
 from fastprogress import force_console_behavior
 
+from score import compute_scores
+
 from weather_dataset import Weather3to3
+
+
+class ComputeScoreOnEpochEnd(Callback):
+
+    def __init__(self, learner, min_epoch_to_save=100):
+        self.learner = learner
+        self.min_epoch_to_save = min_epoch_to_save
+
+        self.scores = []
+        self.best_score = None
+
+    def on_epoch_end(self, **kwargs):
+        (success, score) = predict(learn_gen=self.learner, is_computing_score=True)
+
+        self.scores.append(score)
+
+        if self.best_score is None or score < self.best_score:
+            self.best_score = score
+
+            if len(self.scores) >= self.min_epoch_to_save:
+                # got a new best score then save the model
+                self.learner.save('unet_resnet34_best')
+                self.save('./images/training_scores_best.npy')
+
+        if self.best_score == score:
+            print('score = {} (best)'.format(score))
+        else:
+            print('score = {}'.format(score))
+
+        # Return True to stop training, False to continue
+        return False
+
+    def save(self, filename):
+        np.save(filename, self.scores)
 
 
 def unet_resnet34(data_loader, weights_filename=None):
@@ -45,7 +81,7 @@ def get_temperature_vector(channel_vector, min_value, max_value):
     return channel_vector * (max_value - min_value) + min_value
 
 
-def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, output_array_filename=None):
+def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder=None, output_array_filename=None):
     """
     Generate an increased-resolution image for each lowres image in the given data_loader.
     Each of those generated images will be saved in png format in the specified png_output_folder.
@@ -62,8 +98,9 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
     i=0
 
     # make output folder for all png, if not exist
-    path_gen = Path(png_output_folder)
-    path_gen.mkdir(exist_ok=True)
+    if png_output_folder is not None:
+        path_gen = Path(png_output_folder)
+        path_gen.mkdir(exist_ok=True)
 
     # create an empty maps to collect temperature for each sample
     if output_array_filename is not None:
@@ -73,8 +110,9 @@ def save_predictions(learn_gen, data_loader, date_indexes, png_output_folder, ou
         preds = learn_gen.pred_batch(batch=b, reconstruct=True)
 
         for output_image in preds:
-            # save png image on disk
-            output_image.save(path_gen/filenames[i].name)
+            if png_output_folder is not None:
+                # save png image on disk
+                output_image.save(path_gen/filenames[i].name)
 
             if output_array_filename is not None:
                 # find the index of the filename in the dates array
@@ -108,51 +146,74 @@ def train():
     # create the unet architecture with a Resnet-34 as encoder
     learn_gen = unet_resnet34(data_loader)
 
+    score_callback = ComputeScoreOnEpochEnd(learn_gen)
+
     # by default the Resnet encoder weights are frozen to Imagenet pre-trained weights,
     # keep them freeze and train only for 5 epochs to train the rest of the unet
-    learn_gen.fit_one_cycle(5)
+    learn_gen.fit_one_cycle(5, callbacks=[score_callback])
 
     # now, unfreeze and train all layers
     learn_gen.unfreeze()
 
-    # fit the model on 200 epochs.
+    # fit the model on 250 epochs.
     # learning rate to cycle between 1e-6 and 1e-3
-    learn_gen.fit_one_cycle(200, slice(1e-6,1e-3))
+    learn_gen.fit_one_cycle(250, slice(1e-6,1e-3), callbacks=[score_callback])
 
     learn_gen.save('unet_resnet34')
+
+    score_callback.save('./images/training_scores.npy')
 
     # save a plot of the train and validation losses
     learn_gen.recorder.plot_losses()
     plt.savefig('./losses_plot.png')
 
 
-def predict():
+def predict(learn_gen, model_weights=None, png_output_folder=None, is_computing_score=False):
     """
         Generate the increased-resolution temperature images.
 
         The model to generate the images will be loaded from "./images/models/unet_resnet34.pth"
         The generated images will be saved in "./images/image_gen_test.npy"
 
+        Args:
+            learn_gen (learner object): the trained model to use for prediction
+            model_weights (string): filename of the weights to load
+            is_computing_score (boolean): compute score for generated images if True
+
         Returns:
-             True for success, False otherwise
+             list (boolean, float): (success True/False, score)
     """
-    data_loader = Weather3to3('./images/', batch_size=8, image_size=256).data_loader
+    data_loader = Weather3to3('./images/', batch_size=4, image_size=256).data_loader
     data_loader.ignore_empty=True
+    score = -1
 
-    if not os.path.exists('./images/models/unet_resnet34.pth'):
-        print('  Error - model weights file do not exists: ./images/models/unet_resnet34.pth')
-        return False
-
-    # create the unet architecture with a Resnet-34 as encoder
-    learn_gen = unet_resnet34(data_loader, weights_filename='unet_resnet34')
+    if model_weights is not None:
+        try:
+            # create the unet architecture with a Resnet-34 as encoder
+            learn_gen = unet_resnet34(data_loader, weights_filename=model_weights)
+        except OSError as e:
+            print('  Error - model weights file do not exists: ./images/models/{}.pth'.format(model_weights))
+            return (False, score)
 
     date_indexes = np.load('data/date_test_set.npy')
-    save_predictions(learn_gen,
-                     data_loader.valid_dl,
-                     date_indexes,
-                     'images/valid/image_gen',
-                     output_array_filename='images/image_gen_test.npy')
-    return True
+    generated_test = save_predictions(learn_gen,
+                                      data_loader.valid_dl,
+                                      date_indexes,
+                                      png_output_folder,
+                                      output_array_filename='images/image_gen_test.npy')
+
+    data_loader = None
+
+    if is_computing_score:
+        # import score.py only here (and not at the top) because we need tensorflow install to compute score
+        #from score import compute_scores
+
+        label_test = np.load('data/label_test_set.npy')
+        generated_scores = compute_scores(generated_test, label_test, verbose=True)
+
+        score = np.mean(generated_scores)
+
+    return (True, score)
 
 
 if __name__ == "__main__":
@@ -173,8 +234,12 @@ if __name__ == "__main__":
         print('  model:   ./images/models/unet_resnet34.pth')
         print('  dataset: ./images/valid\n')
 
-        success = predict()
+        (success, score) = predict(learn_gen=None,
+                                   model_weights='unet_resnet34',
+                                   png_output_folder='images/valid/image_gen',
+                                   is_computing_score=True)
         if success:
+            print('  score =', score)
             print('  output:  ./images/valid/image_gen/   (generated increased-resolution images)')
             print('  output:  ./images/image_gen_test.npy (generated air temperature data)')
 
