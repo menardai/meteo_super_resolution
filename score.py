@@ -32,13 +32,22 @@ def compute_scores(generated_test, label_test, verbose=False):
         a list of score
     """
     generated_scores = []
-    for i, gen_img, label_img in zip(range(len(generated_test)), generated_test, label_test):
-        score = getScore(gen_img.reshape(1,1,256,256), label_img.reshape(1,1,256,256)).item()
 
-        if verbose:
-            print('{} - {:0.4f}'.format(i, score))
+    img1_placeholder = tf.placeholder(tf.float32, shape = (None, 1, 256, 256), name = "img1_placeholder")
+    img2_placeholder = tf.placeholder(tf.float32, shape = (None, 1, 256, 256), name = "img2_placeholder")
+    score = scoreCalculation(img1_placeholder, img2_placeholder, 1.0)
 
-        generated_scores.append(score)
+    with tf.Session() as sess:
+
+        for i, gen_img, label_img in zip(range(len(generated_test)), generated_test, label_test):
+
+            scoreValue = score.eval(feed_dict = {img1_placeholder: gen_img.reshape(1,1,256,256),
+                                                 img2_placeholder: label_img.reshape(1,1,256,256)})
+
+            if verbose:
+                print('{} - {:0.4f}'.format(i, scoreValue.item()))
+
+            generated_scores.append(scoreValue.item())
 
     return generated_scores
 

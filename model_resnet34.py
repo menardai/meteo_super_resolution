@@ -4,14 +4,12 @@ from fastai.vision import *
 from fastai.callbacks import *
 from fastprogress import force_console_behavior
 
-from score import compute_scores
-
 from weather_dataset import Weather3to3
 
 
 class ComputeScoreOnEpochEnd(Callback):
 
-    def __init__(self, learner, min_epoch_to_save=100):
+    def __init__(self, learner, min_epoch_to_save=150):
         self.learner = learner
         self.min_epoch_to_save = min_epoch_to_save
 
@@ -32,9 +30,9 @@ class ComputeScoreOnEpochEnd(Callback):
                 self.save('./images/training_scores_best.npy')
 
         if self.best_score == score:
-            print('score = {} (best)'.format(score))
+            print('score = {:2.4f} (best)'.format(score))
         else:
-            print('score = {}'.format(score))
+            print('score = {:2.4f}'.format(score))
 
         # Return True to stop training, False to continue
         return False
@@ -202,14 +200,12 @@ def predict(learn_gen, model_weights=None, png_output_folder=None, is_computing_
                                       png_output_folder,
                                       output_array_filename='images/image_gen_test.npy')
 
-    data_loader = None
-
     if is_computing_score:
         # import score.py only here (and not at the top) because we need tensorflow install to compute score
-        #from score import compute_scores
+        from score import compute_scores
 
         label_test = np.load('data/label_test_set.npy')
-        generated_scores = compute_scores(generated_test, label_test, verbose=True)
+        generated_scores = compute_scores(generated_test, label_test)
 
         score = np.mean(generated_scores)
 
