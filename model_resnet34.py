@@ -9,7 +9,7 @@ from weather_dataset import Weather3to3
 
 class ComputeScoreOnEpochEnd(Callback):
 
-    def __init__(self, learner, min_epoch_to_save=150):
+    def __init__(self, learner, min_epoch_to_save=0):
         self.learner = learner
         self.min_epoch_to_save = min_epoch_to_save
 
@@ -227,11 +227,11 @@ if __name__ == "__main__":
 
     if arg == '--predict':
         print('PREDICTION')
-        print('  model:   ./images/models/unet_resnet34.pth')
+        print('  model:   ./images/models/unet_resnet34_best.pth')
         print('  dataset: ./images/valid\n')
 
         (success, score) = predict(learn_gen=None,
-                                   model_weights='unet_resnet34',
+                                   model_weights='unet_resnet34_best',
                                    png_output_folder='images/valid/image_gen',
                                    is_computing_score=True)
         if success:
